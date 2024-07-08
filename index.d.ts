@@ -24,6 +24,15 @@ declare namespace WAWebJS {
         /**Accepts an invitation to join a group */
         acceptInvite(inviteCode: string): Promise<string>
 
+        /** Accepts a channel admin invitation and promotes the current user to a channel admin */
+        acceptChannelAdminInvite(channelId: string): Promise<boolean>
+
+        /** Revokes a channel admin invitation sent to a user by a channel owner */
+        revokeChannelAdminInvite(channelId: string, userId: string): Promise<boolean>
+
+        /** Demotes a channel admin to a regular subscriber (can be used also for self-demotion) */
+        demoteChannelAdmin(channelId: string, userId: string): Promise<boolean>
+
         /** Accepts a private invitation to join a group (v4 invite) */
         acceptGroupV4Invite: (inviteV4: InviteV4Data) => Promise<{status: number}>
 
@@ -42,6 +51,24 @@ declare namespace WAWebJS {
         /** Creates a new group */
         createGroup(title: string, participants?: string | Contact | Contact[] | string[], options?: CreateGroupOptions): Promise<CreateGroupResult|string>
 
+        /** Creates a new channel */
+        createChannel(title: string, options?: CreateChannelOptions): Promise<CreateChannelResult | string>
+
+        /** Subscribe to channel */
+        subscribeToChannel(channelId: string): Promise<boolean>
+
+        /** Unsubscribe from channel */
+        unsubscribeFromChannel(channelId: string, options?: UnsubscribeOptions): Promise<boolean>
+
+        /**
+         * Searches for channels based on search criteria, there are some notes:
+         * 1. The method finds only channels you are not subscribed to currently
+         * 2. If you have never been subscribed to a found channel
+         * or you have unsubscribed from it with {@link UnsubscribeOptions.deleteLocalModels} set to 'true',
+         * the lastMessage property of a found channel will be 'null'
+         */
+        searchChannels(searchOptions: SearchChannelsOptions): Promise<Array<Channel> | []>
+
         /** Closes the client */
         destroy(): Promise<void>
 
@@ -51,11 +78,17 @@ declare namespace WAWebJS {
         /** Get all blocked contacts by host account */
         getBlockedContacts(): Promise<Contact[]>
 
-        /** Get chat instance by ID */
+        /** Gets chat or channel instance by ID */
         getChatById(chatId: string): Promise<Chat>
+
+        /** Gets a {@link Channel} instance by invite code */
+        getChannelByInviteCode(inviteCode: string): Promise<Channel>
 
         /** Get all current chat instances */
         getChats(): Promise<Chat[]>
+
+        /** Gets all cached {@link Channel} instances */
+        getChannels(): Promise<Channel[]>
 
         /** Get contact instance by ID */
         getContactById(contactId: string): Promise<Contact>
@@ -128,6 +161,9 @@ declare namespace WAWebJS {
 
         /** Send a message to a specific chatId */
         sendMessage(chatId: string, content: MessageContent, options?: MessageSendOptions): Promise<Message>
+
+        /** Sends a channel admin invitation to a user, allowing them to become an admin of the channel */
+        sendChannelAdminInvite(chatId: string, channelId: string, options?: { comment?: string }): Promise<boolean>
         
         /** Searches for messages */
         searchMessages(query: string, options?: { chatId?: string, page?: number, limit?: number }): Promise<Message[]>
@@ -383,6 +419,14 @@ declare namespace WAWebJS {
 
         /** Emitted when the RemoteAuth session is saved successfully on the external Database */
         on(event: 'remote_session_saved', listener: () => void): this
+
+        /**
+         * Emitted when some poll option is selected or deselected,
+         * shows a user's current selected option(s) on the poll
+         */
+        on(event: 'vote_update', listener: (
+            vote: PollVote
+        ) => void): this
     }
 
     /** Current connection information */
@@ -616,6 +660,49 @@ declare namespace WAWebJS {
                 isInviteV4Sent: boolean
             };
         };
+    }
+
+    /** An object that handles options for channel creation */
+    export interface CreateChannelOptions {
+        /** The channel description */
+        description?: string,
+        /** The channel profile picture */
+        picture?: MessageMedia
+    }
+
+    /** An object that handles the result for createGroup method */
+    export interface CreateChannelResult {
+        /** A channel title */
+        title: string,
+        /** An object that handles the newly created channel ID */
+        nid: ChatId,
+        /** The channel invite link, starts with 'https://whatsapp.com/channel/' */
+        inviteLink: string,
+        /** The timestamp the channel was created at */
+        createdAtTs: number
+    }
+
+    /** Options for unsubscribe from a channel */
+    export interface UnsubscribeOptions {
+        /**
+         * If true, after an unsubscription, it will completely remove a channel from the channel collection
+         * making it seem like the current user have never interacted with it.
+         * Otherwise it will only remove a channel from the list of channels the current user is subscribed to
+         * and will set the membership type for that channel to GUEST
+         */
+        deleteLocalModels?: boolean
+    }
+
+    /** Options for searching for channels */
+    export interface SearchChannelsOptions {
+        countryCodes?: string[];
+        sortOptions: {
+            field?: string;
+            order?: string;
+        };
+        searchText?: string;
+        view?: string;
+        limit?: number;
     }
 
     export interface GroupNotification {
@@ -1030,6 +1117,34 @@ declare namespace WAWebJS {
         constructor(pollName: string, pollOptions: Array<string>, options?: PollSendOptions)
     }
 
+    /** Represents a Poll Vote on WhatsApp */
+    export interface PollVote {
+        /** The person who voted */
+        voter: string;
+
+        /**
+         * The selected poll option(s)
+         * If it's an empty array, the user hasn't selected any options on the poll,
+         * may occur when they deselected all poll options
+         */
+        selectedOptions: SelectedPollOption[];
+
+        /** Timestamp the option was selected or deselected at */
+        interractedAtTs: number;
+
+        /** The poll creation message associated with the poll vote */
+        parentMessage: Message;
+    }
+
+    /** Selected poll option structure */
+    export interface SelectedPollOption {
+        /** The local selected option ID */
+        id: number;
+
+        /** The option name */
+        name: string;
+    }
+
     export interface Label {
         /** Label name */
         name: string,
@@ -1355,8 +1470,10 @@ declare namespace WAWebJS {
         timestamp: number,
         /** Amount of messages unread */
         unreadCount: number,
-        /** Last message fo chat */
+        /** Last message of chat */
         lastMessage: Message,
+        /** Indicates if the Chat is pinned */
+        pinned: boolean,
 
         /** Archives this chat */
         archive: () => Promise<void>,
@@ -1394,6 +1511,83 @@ declare namespace WAWebJS {
         getLabels: () => Promise<Label[]>,
         /** Add or remove labels to this Chat */
         changeLabels: (labelIds: Array<string | number>) => Promise<void>
+    }
+
+    export interface Channel {
+        /** ID that represents the channel */
+        id: {
+            server: string;
+            user: string;
+            _serialized: string;
+        };
+        /** Title of the channel */
+        name: string;
+        /** The channel description */
+        description: string;
+        /** Indicates if it is a Channel */
+        isChannel: boolean;
+        /** Indicates if it is a Group */
+        isGroup: boolean;
+        /** Indicates if the channel is readonly */
+        isReadOnly: boolean;
+        /** Amount of messages unread */
+        unreadCount: number;
+        /** Unix timestamp for when the last activity occurred */
+        timestamp: number;
+        /** Indicates if the channel is muted or not */
+        isMuted: boolean;
+        /** Unix timestamp for when the mute expires */
+        muteExpiration: number;
+        /** Last message in the channel */
+        lastMessage: Message | undefined;
+
+        /** Gets the subscribers of the channel (only those who are in your contact list) */
+        getSubscribers(limit?: number): Promise<{contact: Contact, role: string}[]>;
+        /** Updates the channel subject */
+        setSubject(newSubject: string): Promise<boolean>;
+        /** Updates the channel description */
+        setDescription(newDescription: string): Promise<boolean>;
+        /** Updates the channel profile picture */
+        setProfilePicture(newProfilePicture: MessageMedia): Promise<boolean>;
+        /**
+         * Updates available reactions to use in the channel
+         * 
+         * Valid values for passing to the method are:
+         * 0 for ALL reactions to be available
+         * 1 for BASIC reactions to be available: 👍, ❤️, 😂, 😮, 😢, 🙏
+         * 2 for NONE reactions to be avaliable
+         */
+        setReactionSetting(reactionCode: number): Promise<boolean>;
+        /** Mutes the channel */
+        mute(): Promise<boolean>;
+        /** Unmutes the channel */
+        unmute(): Promise<boolean>;
+        /** Sends a message to this channel */
+        sendMessage(content: string|MessageMedia, options?: MessageSendChannelOptions): Promise<Message>;
+        /** Sends a channel admin invitation to a user, allowing them to become an admin of the channel */
+        sendChannelAdminInvite(chatId: string, options?: { comment?: string }): Promise<boolean>;
+        /** Accepts a channel admin invitation and promotes the current user to a channel admin */
+        acceptChannelAdminInvite(): Promise<boolean>;
+        /** Revokes a channel admin invitation sent to a user by a channel owner */
+        revokeChannelAdminInvite(userId: string): Promise<boolean>;
+        /** Demotes a channel admin to a regular subscriber (can be used also for self-demotion) */
+        demoteChannelAdmin(userId: string): Promise<boolean>;
+        /** Loads channel messages, sorted from earliest to latest */
+        fetchMessages: (searchOptions: MessageSearchOptions) => Promise<Message[]>;
+        /** Deletes the channel you created */
+        deleteChannel(): Promise<boolean>;
+    }
+
+    /** Options for sending a message */
+    export interface MessageSendChannelOptions {
+        /** Image or videos caption */
+        caption?: string
+        /** User IDs of user that will be mentioned in the message */
+        mentions?: string[]
+        /** Image or video to be sent */
+        media?: MessageMedia
+        /** Extra options */
+        extra?: any
     }
 
     export interface MessageSearchOptions {
@@ -1537,6 +1731,12 @@ declare namespace WAWebJS {
         setSubject: (subject: string) => Promise<boolean>;
         /** Updates the group description */
         setDescription: (description: string) => Promise<boolean>;
+        /**
+         * Updates the group setting to allow only admins to add members to the group.
+         * @param {boolean} [adminsOnly=true] Enable or disable this option 
+         * @returns {Promise<boolean>} Returns true if the setting was properly updated. This can return false if the user does not have the necessary permissions.
+         */
+        setAddMembersAdminsOnly: (adminsOnly?: boolean) => Promise<boolean>;
         /** Updates the group settings to only allow admins to send messages
          * @param {boolean} [adminsOnly=true] Enable or disable this option
          * @returns {Promise<boolean>} Returns true if the setting was properly updated. This can return false if the user does not have the necessary permissions.
