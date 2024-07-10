@@ -131,9 +131,11 @@ exports.ExposeStore = () => {
         ...window.require('WASmaxGroupsMembershipRequestsActionRPC')
     };
 
-    // window.Store.ChannelUtils = {
+    window.Store.ChannelUtils = {
     //     ...window.require('loadNewsletterPreviewChat'),
     //     ...window.require('queryNewsletterMetadataByInviteCode'),
+        ...window.require("WAWebNewsletterPreviewJob"), // getNewsletterPreviewData
+        ...window.require("WAWebNewsletterMetadataJob"), // getNewsletterMetadata
     //     ...window.require('createNewsletterQuery'),
     //     ...window.require('editNewsletterMetadataAction'),
     //     ...window.require('deleteNewsletterAction'),
@@ -143,13 +145,13 @@ exports.ExposeStore = () => {
     //     ...window.require('muteNewsletter'),
     //     ...window.require('unmuteNewsletter'),
     //     ...window.require('isNewsletterCreationEnabled'),
-    //     ...window.require('getRoleByIdentifier'),
+        ...window.require('WAWebNewsletterModelUtils'), // getRoleByIdentifier
     //     ...window.require('acceptNewsletterAdminInvite'),
     //     ...window.require('revokeNewsletterAdminInvite'),
     //     ...window.require('demoteNewsletterAdmin'),
     //     countryCodesIso: window.require(m => m.default && m.default.US === 'United States').default,
     //     currentRegion: window.require(m => m.default && m.default.getRegion).default.getRegion(),
-    // };
+    };
     window.Store.SendChannelMessage = {
         ...window.require('WAWebNewsletterUpdateMsgsRecordsJob'),
         ...window.require('WAWebMsgDataFromModel'),
