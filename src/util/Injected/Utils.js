@@ -189,6 +189,15 @@ exports.LoadUtils = () => {
             delete options.list;
             delete listOptions.list.footer;
         }
+        
+        const botOptions = {};
+        if (options.invokedBotWid) {
+            botOptions.messageSecret = window.crypto.getRandomValues(new Uint8Array(32));
+            botOptions.botMessageSecret = await window.Store.BotSecret.genBotMsgSecretFromMsgSecret(botOptions.messageSecret);
+            botOptions.invokedBotWid = window.Store.WidFactory.createWid(options.invokedBotWid);
+            botOptions.botPersonaId = window.Store.BotProfiles.BotProfileCollection.get(options.invokedBotWid).personaId;
+            delete options.invokedBotWid;
+        }
 
         const lidUser = window.Store.User.getMaybeMeLidUser();
         const meUser = window.Store.User.getMaybeMeUser();
@@ -205,7 +214,7 @@ exports.LoadUtils = () => {
             from: from,
             to: chat.id,
             id: newId,
-            participant: isMD && participant,
+            participant: participant,
             selfDir: 'out'
         });
 
