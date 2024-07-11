@@ -132,7 +132,6 @@ exports.ExposeStore = () => {
     };
 
     window.Store.ChannelUtils = {
-    //     ...window.require('loadNewsletterPreviewChat'),
     //     ...window.require('queryNewsletterMetadataByInviteCode'),
         ...window.require("WAWebNewsletterPreviewJob"), // getNewsletterPreviewData
         ...window.require("WAWebNewsletterMetadataJob"), // getNewsletterMetadata
