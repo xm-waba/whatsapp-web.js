@@ -1078,12 +1078,12 @@ class Client extends EventEmitter {
             let channelMetadata;
             try {
                 channelMetadata = await window.WWebJS.getChannelMetadata(inviteCode);
-                return channelMetadata
+                return channelMetadata;
             } catch (err) {
                 if (err.name === 'ServerStatusCodeError') return null;
                 throw err;
             }
-        }, inviteCode)
+        }, inviteCode);
     }
 
     /**
