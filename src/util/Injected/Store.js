@@ -144,6 +144,8 @@ exports.ExposeStore = () => {
         ...window.require('WAWebMexAcceptNewsletterAdminInviteJob'),
         ...window.require('WAWebMexRevokeNewsletterAdminInviteJob'),
         ...window.require('WAWebNewsletterDemoteAdminJob'),
+        ...window.require('WAWebNewsletterPreviewJob'), // getNewsletterPreviewData
+        ...window.require('WAWebNewsletterMetadataJob'), // getNewsletterMetadata
         countryCodesIso: window.require('WAWebCountriesNativeCountryNames'),
         currentRegion: window.require('WAWebL10N').getRegion(),
     };
