@@ -80,7 +80,8 @@ class RemoteAuth extends BaseAuthStrategy {
         if (pathExists) {
             await fs.promises.rm(this.userDataDir, {
                 recursive: true,
-                force: true
+                force: true,
+                maxRetries: 4,
             }).catch(() => {});
         }
         clearInterval(this.backupSync);
@@ -107,7 +108,8 @@ class RemoteAuth extends BaseAuthStrategy {
             await fs.promises.unlink(`${this.sessionName}.zip`);
             await fs.promises.rm(`${this.tempDir}`, {
                 recursive: true,
-                force: true
+                force: true,
+                maxRetries: 4,
             }).catch(() => {});
             if(options && options.emit) this.client.emit(Events.REMOTE_SESSION_SAVED);
         }
@@ -120,7 +122,8 @@ class RemoteAuth extends BaseAuthStrategy {
         if (pathExists) {
             await fs.promises.rm(this.userDataDir, {
                 recursive: true,
-                force: true
+                force: true,
+                maxRetries: 4,
             }).catch(() => {});
         }
         if (sessionExists) {
@@ -177,7 +180,8 @@ class RemoteAuth extends BaseAuthStrategy {
                     if (stats.isDirectory()) {
                         await fs.promises.rm(dirElement, {
                             recursive: true,
-                            force: true
+                            force: true,
+                            maxRetries: 4,
                         }).catch(() => {});
                     } else {
                         await fs.promises.unlink(dirElement).catch(() => {});
