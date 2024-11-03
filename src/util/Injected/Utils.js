@@ -25,6 +25,7 @@ exports.LoadUtils = () => {
 
     window.WWebJS.sendMessage = async (chat, content, options = {}) => {
         const isChannel = chat.isNewsletter;
+        const isStatusBroadcast = chat.id._serialized === 'status@broadcast';
 
         let mediaOptions = {};
         if (options.media) {
@@ -220,6 +221,11 @@ exports.LoadUtils = () => {
             from = chat.groupMetadata && chat.groupMetadata.isLidAddressingMode ? lidUser : meUser;
             participant = window.Store.WidFactory.toUserWid(from);
         }
+        
+        if (isStatusBroadcast) {
+            from = meUser;
+            participant = window.Store.WidFactory.toUserWid(from);
+        }
 
         const newMsgKey = new window.Store.MsgKey({
             from: from,
@@ -286,6 +292,18 @@ exports.LoadUtils = () => {
             msg.updateAck(1, true);
             await window.Store.SendChannelMessage.updateNewsletterMsgRecord(msg);
             return msg;
+        }
+        
+        if (isStatusBroadcast) {
+            const isMedia = Object.keys(mediaOptions).length > 0;
+            if (!isMedia) {
+                throw new Error('Status broadcast messages must be media messages');
+            }
+            await window.Store.SendStatus.sendStatusMediaMsgAction(
+                message, 
+                async (x) => x, // accepts "uploadMedia" callback, but we uploaded it before
+            );
+            return window.Store.Msg.get(newMsgKey._serialized);
         }
 
         await window.Store.SendMessage.addAndSendMsgToChat(chat, message);
