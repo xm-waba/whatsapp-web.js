@@ -161,6 +161,7 @@ exports.ExposeStore = () => {
         ...window.require('WAWebNewsletterSubscriberListAction'),
         ...window.require('WAWebNewsletterGatingUtils')
     };
+    window.Store.SendStatus = window.require('WAWebSendStatusMsgAction');
 
     if (!window.Store.Chat._find || !window.Store.Chat.findImpl) {
         window.Store.Chat._find = e => {
