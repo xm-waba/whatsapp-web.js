@@ -504,7 +504,7 @@ exports.LoadUtils = () => {
             window.Store.ChannelUtils.getRoleByIdentifier(inviteCode)
         );
         const newsletterMetadata = previewData.newsletterMetadata;
-        const picUrl = newsletterMetadata.newsletterPictureMetadataMixin.picture[0].queryPictureDirectPathOrMatchedOrEmptyResponseMixinGroup.value.directPath;
+        const picUrl = newsletterMetadata.newsletterPictureMetadataMixin.picture[0].queryPictureDirectPathOrEmptyResponseMixinGroup.value.directPath;
 
         return {
             id: newsletterMetadata.idJid,
