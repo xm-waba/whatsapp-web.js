@@ -46,16 +46,23 @@ exports.LoadUtils = () => {
 
         let quotedMsgOptions = {};
         if (options.quotedMessageId) {
-            let quotedMessage = window.Store.Msg.get(options.quotedMessageId);
-            !quotedMessage && (quotedMessage = (await window.Store.Msg.getMessagesById([options.quotedMessageId]))?.messages?.[0]);
-
-            if (!quotedMessage) {
-                throw new Error('Could not get the quoted message.');
+            let attempts = 5;
+            let attempt = 1;
+            let quotedMessage;
+            for (attempt; attempt <= attempts; attempt++) {
+                quotedMessage = window.Store.Msg.get(options.quotedMessageId);
+                !quotedMessage && (quotedMessage = (await window.Store.Msg.getMessagesById([options.quotedMessageId]))?.messages?.[0]);
+                if (quotedMessage) {
+                    break;
+                }
+                // sleep
+                await new Promise(resolve => setTimeout(resolve, 100));
             }
-
-            const canReply = window.Store.ReplyUtils ? 
-                window.Store.ReplyUtils.canReplyMsg(quotedMessage.unsafe()) : 
-                quotedMessage.canReply();
+            if (!quotedMessage){
+                console.error(`Could not get the quoted message - ${options.quotedMessageId}`);
+            }
+            
+            const canReply = quotedMessage && window.Store.ReplyUtils?.canReplyMsg(quotedMessage.unsafe());
 
             if (canReply) {
                 quotedMsgOptions = quotedMessage.msgContextInfo(chat);
