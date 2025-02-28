@@ -24,7 +24,7 @@ exports.LoadUtils = () => {
     };
 
     window.WWebJS.sendMessage = async (chat, content, options = {}) => {
-        const isChannel = chat.isChannel;
+        const isChannel = chat.id.server === 'newsletter';
         const isStatusBroadcast = chat.id._serialized === 'status@broadcast';
 
         let mediaOptions = {};
@@ -565,7 +565,8 @@ exports.LoadUtils = () => {
             model.groupMetadata = chat.groupMetadata.serialize();
         }
 
-        if (chat.newsletterMetadata) {
+        isChannel = chat.id.server === 'newsletter';
+        if (isChannel) {
             model.isChannel = true;
             await window.Store.NewsletterMetadataCollection.update(chat.id);
             model.channelMetadata = chat.newsletterMetadata.serialize();
