@@ -1020,7 +1020,7 @@ exports.LoadUtils = () => {
         let response;
         let result = [];
 
-        await window.Store.GroupQueryAndUpdate(groupWid);
+        await window.Store.GroupQueryAndUpdate({id: groupWid._serialized});
 
         if (!requesterIds?.length) {
             membershipRequests = group.groupMetadata.membershipApprovalRequests._models.map(({ id }) => id);
